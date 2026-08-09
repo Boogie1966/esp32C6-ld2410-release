@@ -2,16 +2,18 @@
 # Source firmware repo: esp32c6-ld2410-zigbee
 
 blueprint:
-  name: LD2410C-C6 - Zigbee2MQTT converter telepitese
+  name: LD2410C-C6 - Zigbee2MQTT beallitas
   description: >-
-    Felteszi a SanyDIY LD2410C-C6 jelenletardzekelo Zigbee2MQTT converteret, majd
+    Beallitja a SanyDIY LD2410C-C6 jelenletardzekelot a Zigbee2MQTT-ben:
+    felteszi a convertert, beallitja a firmware-frissitesek forrasat, majd
     ujrainditja a Zigbee2MQTT add-ont. Nem kell hozza sem terminal, sem
     fajlkezelo. Futtatas utan parositsd az eszkozt (Permit join).
 
 
-    Installs the Zigbee2MQTT external converter for the SanyDIY LD2410C-C6
-    presence sensor and restarts the Zigbee2MQTT add-on. No terminal or file
-    manager needed. After running it, pair the device (Permit join).
+    Sets up the SanyDIY LD2410C-C6 presence sensor in Zigbee2MQTT: installs the
+    external converter, points firmware updates at the right index, and
+    restarts the Zigbee2MQTT add-on. No terminal or file manager needed. After
+    running it, pair the device (Permit join).
   domain: script
   source_url: https://raw.githubusercontent.com/Boogie1966/esp32C6-ld2410-release/main/ha-install-converter.yaml
   input:
@@ -30,6 +32,24 @@ blueprint:
         Pick the Zigbee2MQTT add-on so the script can restart it.
       selector:
         addon:
+    setup_ota:
+      name: Firmware-frissites beallitasa / Set up firmware updates
+      description: >-
+        Megadja a Zigbee2MQTT-nek, hol keresse az erzekelo firmware-frissiteseit,
+        igy az uj verziok maguktol megjelennek az eszkoz oldalan. /
+        Tells Zigbee2MQTT where to look for this sensor's firmware updates, so
+        new versions show up on the device page by themselves.
+      default: true
+      selector:
+        boolean:
+    ota_index_url:
+      name: Firmware index URL
+      description: >-
+        Csak akkor valtoztasd meg, ha sajat kiadasi helyet hasznalsz. /
+        Only change this if you host your own releases.
+      default: https://raw.githubusercontent.com/Boogie1966/esp32C6-ld2410-release/main/ota-index.json
+      selector:
+        text:
     restart_addon:
       name: Ujrainditsa a Zigbee2MQTT-t? / Restart Zigbee2MQTT?
       description: >-
@@ -48,6 +68,8 @@ sequence:
     variables:
       base_topic: !input z2m_base_topic
       do_restart: !input restart_addon
+      do_ota: !input setup_ota
+      ota_url: !input ota_index_url
       converter_name: ld2410c_c6.mjs
       converter_code: |
         /*
@@ -379,7 +401,20 @@ sequence:
       payload: >-
         {{ {'name': converter_name, 'code': converter_code} | to_json }}
 
-  - alias: Varakozas a mentesre / Give Zigbee2MQTT a moment to write the file
+  - alias: Firmware-frissites forrasa / Point Zigbee2MQTT at the firmware index
+    if:
+      - condition: template
+        value_template: "{{ do_ota }}"
+    then:
+      - action: mqtt.publish
+        data:
+          topic: "{{ base_topic }}/bridge/request/options"
+          qos: 0
+          retain: false
+          payload: >-
+            {{ {'options': {'ota': {'zigbee_ota_override_index_location': ota_url}}} | to_json }}
+
+  - alias: Varakozas a mentesre / Give Zigbee2MQTT a moment to write the files
     delay:
       seconds: 3
 
@@ -395,13 +430,13 @@ sequence:
   - alias: Visszajelzes / Tell the user what happened
     action: persistent_notification.create
     data:
-      title: LD2410C-C6 converter
+      title: LD2410C-C6 beallitas
       message: >-
-        A converter elkuldve a Zigbee2MQTT-nek.{{ ' A Zigbee2MQTT ujraindul, ez kb. fel percig tart.' if do_restart else '' }}
+        A converter elkuldve a Zigbee2MQTT-nek.{{ ' A firmware-frissitesek forrasa is beallitva.' if do_ota else '' }}{{ ' A Zigbee2MQTT ujraindul, ez kb. fel percig tart.' if do_restart else '' }}
         Ellenorzes: Zigbee2MQTT -> Settings -> Dev console -> External converters.
         Ezutan kapcsold be a Permit join-t es dugd be az erzekelot.
 
 
-        The converter has been sent to Zigbee2MQTT.{{ ' Zigbee2MQTT is restarting, this takes about half a minute.' if do_restart else '' }}
+        The converter has been sent to Zigbee2MQTT.{{ ' The firmware update source has been set as well.' if do_ota else '' }}{{ ' Zigbee2MQTT is restarting, this takes about half a minute.' if do_restart else '' }}
         Verify under Zigbee2MQTT -> Settings -> Dev console -> External converters,
         then enable Permit join and power up the sensor.
