@@ -139,6 +139,8 @@ sequence:
                 enterConfigPortal:  {ID: 0x04, parameters: []},
                 setBootMode:        {ID: 0x05, parameters: [{name: 'mode', type: Zcl.DataType.UINT8}]},
                 readRadarParams:    {ID: 0x06, parameters: []},
+                setConfig:          {ID: 0x07, parameters: [{name: 'attrId', type: Zcl.DataType.UINT16},
+                                                            {name: 'value', type: Zcl.DataType.UINT16}]},
             },
             commandsResponse: {},
         };
@@ -238,7 +240,31 @@ sequence:
                 entityCategory: opts.category,
             });
 
-        const rw = (name, attribute, opts = {}) =>
+        /* Writing to 0xFC00 is refused by the device's Zigbee stack (NOT_AUTHORIZED,
+         * before the firmware is even asked), so configuration goes out as the
+         * setConfig command instead. Everything else of the extend stays: the expose
+         * keeps its set control, reads still use convertGet, and the firmware reports
+         * the value it actually applied. */
+        const viaSetConfig = (ext, attribute, encode = Number) => ({
+            ...ext,
+            toZigbee: ext.toZigbee.map((tz) => ({
+                ...tz,
+                convertSet: async (entity, key, value, meta) => {
+                    const raw = encode(value);
+                    if (!Number.isInteger(raw) || raw < 0 || raw > 0xffff) {
+                        throw new Error(`Invalid value '${value}' for ${key}`);
+                    }
+                    await entity.command(CLUSTER, 'setConfig',
+                        {attrId: ld2410Cluster.attributes[attribute].ID, value: raw},
+                        {disableDefaultResponse: true});
+                    return {state: {[key]: value}};
+                },
+            })),
+        });
+
+        const onOff = (value) => (value === 'ON' || value === true || value === 1 ? 1 : 0);
+
+        const rw = (name, attribute, opts = {}) => viaSetConfig(
             m.numeric({
                 name,
                 cluster: CLUSTER,
@@ -253,7 +279,8 @@ sequence:
                 valueMax: opts.max,
                 valueStep: 1,
                 entityCategory: 'config',
-            });
+            }),
+            attribute);
 
         const gateEnergyExtends = [];
         for (let g = 0; g < GATES; g++) {
@@ -344,23 +371,23 @@ sequence:
                     description: 'Highest gate used for stationary detection'}),
                 rw('no_one_duration', 'noOneDuration', {unit: 's', min: 0, max: 65535,
                     description: 'Seconds to keep presence after the last detection'}),
-                m.enumLookup({
+                viaSetConfig(m.enumLookup({
                     name: 'distance_resolution', cluster: CLUSTER, attribute: 'distanceResolution',
                     lookup: {'0.75m': 0, '0.20m': 1}, access: 'ALL', entityCategory: 'config',
                     description: 'Gate size. Changing this restarts the radar.',
-                }),
-                m.binary({
+                }), 'distanceResolution', (value) => ({'0.75m': 0, '0.20m': 1})[value]),
+                viaSetConfig(m.binary({
                     name: 'engineering_mode', cluster: CLUSTER, attribute: 'engineeringMode',
                     valueOn: ['ON', 1], valueOff: ['OFF', 0], access: 'ALL',
                     entityCategory: 'config',
                     description: 'Per-gate energy reporting (needed for the gate_* sensors)',
-                }),
-                m.binary({
+                }), 'engineeringMode', onOff),
+                viaSetConfig(m.binary({
                     name: 'radar_bluetooth', cluster: CLUSTER, attribute: 'bluetooth',
                     valueOn: ['ON', 1], valueOff: ['OFF', 0], access: 'ALL',
                     entityCategory: 'config',
                     description: 'LD2410C built-in Bluetooth (HLKRadarTool app)',
-                }),
+                }), 'bluetooth', onOff),
                 rw('report_min_interval', 'reportMin', {unit: 's', min: 1, max: 3600,
                     description: 'Minimum seconds between reports of a changing value'}),
                 rw('report_max_interval', 'reportMax', {unit: 's', min: 10, max: 3600,
