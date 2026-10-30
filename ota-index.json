@@ -1,10 +1,10 @@
 [
   {
-    "fileVersion": 268894208,
-    "fileSize": 1340254,
+    "fileVersion": 268959744,
+    "fileSize": 1340990,
     "manufacturerCode": 4660,
     "imageType": 1,
-    "sha512": "e90a8d9ad444ca464fff3009942f24c286e1b098d3f359f79878efd319478a8d35778d46966b99f67ed1f85a44ddc758f6e4f95d52c17b0208f70d66cb88810a",
+    "sha512": "4334f77de30118fe60172cf5380215f28feb3479c812205df129ec1559a1d0c82abc269ab11f26a06e7ebf7f3c8a99b276b79d9ec7797bbe833c317e0da4656d",
     "url": "https://raw.githubusercontent.com/Boogie1966/esp32C6-ld2410-release/main/ld2410c_c6.ota"
   }
 ]

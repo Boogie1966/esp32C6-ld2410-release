@@ -314,6 +314,10 @@ sequence:
             model: 'LD2410C-C6',
             vendor: 'SanyDIY',
             description: 'ESP32-C6 + HLK-LD2410C 24 GHz mmWave presence sensor (custom firmware)',
+            /* S/IoT device icon for the Zigbee2MQTT frontend. Inline data URI, so it
+             * works offline; source: z2m/siot-icon.svg. A per-device `icon` option in
+             * Z2M still overrides it. */
+            icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9Ii01NiAtNTggNDIwIDQyMCI+PHJlY3QgeD0iLTU2IiB5PSItNTgiIHdpZHRoPSI0MjAiIGhlaWdodD0iNDIwIiByeD0iOTIiIGZpbGw9IiMwODI5NTciLz48cGF0aCBkPSJNMzEgMjkyVjE0M0g3VjEyOEwxNTMgOEwyMzMgNzMuM1YzNkgyNjVWOTkuNEwzMDAgMTI4VjE0M0gyNzZWMjkyWiIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjRkZGRkZGIiBzdHJva2Utd2lkdGg9IjEyIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+PHBhdGggZD0iTTE4Ni44IDEwOC45TDE1NSA5Mkw4OCAxMzNWMTU3TDE1OCAxOTlNMTQ2IDE0OEwyMTggMTkwVjIxMkwxNTAgMjU5TDExNS40IDI0MS43IiBmaWxsPSJub25lIiBzdHJva2U9IiMwOUJGQzUiIHN0cm9rZS13aWR0aD0iMTgiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCIvPjxjaXJjbGUgY3g9IjIwNCIgY3k9IjExOCIgcj0iMTMuNSIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjMDlCRkM1IiBzdHJva2Utd2lkdGg9IjEyIi8+PGNpcmNsZSBjeD0iOTgiIGN5PSIyMzMiIHI9IjEzLjUiIGZpbGw9Im5vbmUiIHN0cm9rZT0iIzA5QkZDNSIgc3Ryb2tlLXdpZHRoPSIxMiIvPjwvc3ZnPg==',
             extend: [
                 m.deviceAddCustomCluster(CLUSTER, ld2410Cluster),
                 bindExtend(),           /* must follow the cluster registration */
